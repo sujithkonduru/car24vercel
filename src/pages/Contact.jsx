@@ -137,7 +137,7 @@ const Contact = () => {
       title: "Call Us",
       info: "+91 97030 40505",
       detail: "24/7 Customer Support",
-      link: "tel:+919703040505",
+      link: "tel:+919247536486",
       color: "#3b82f6"
     },
     {

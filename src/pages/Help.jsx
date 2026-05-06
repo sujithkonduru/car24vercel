@@ -59,8 +59,8 @@ const CONTACT_OPTIONS = [
     icon: "📞",
     title: "Call Us",
     desc: "Speak to our support team directly.",
-    href: "tel:9703040505",
-    label: "+91 9703040505",
+    href: "tel:9247536486",
+    label: "+91 9247536486",
     external: false,
   },
   {

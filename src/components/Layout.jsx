@@ -6,7 +6,7 @@ import logo from "../images/Car 24 logo (1).png";
 
 const WHATSAPP = "#";
 const INSTAGRAM = "https://www.instagram.com/car24_travels_official/";
-const PHONE = "9703040505";
+const PHONE = "9247536486";
 
 const ROLE_LABEL = {
   user: "User", owner: "Owner", staff: "Staff",
@@ -323,7 +323,7 @@ export default function Layout({ children }) {
             </a>
             <a href={`tel:${PHONE}`} className="lyt-footer-contact-item">
               <span className="lyt-fci-icon lyt-fci-ph"><PhoneIcon /></span>
-              <span>+91 9703040505</span>
+              <span>+91 9247536486</span>
             </a>
           </div>
 
