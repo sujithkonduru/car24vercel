@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getBranchHeadProfile, getCancellationRequests, approveCancelBooking, apiPost } from "../api.js";
+import { getBranchHeadProfile, approveCancelBooking } from "../api.js";
 import { formatINR, formatDateTime } from "../utils/formatters.js";
 import "./BranchHeadDashboard.css";
 
@@ -12,6 +12,49 @@ export default function BranchActivities() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("cancellations");
+  const [processingId, setProcessingId] = useState(null);
+
+  const API_BASE = import.meta.env.VITE_API_URL || "";
+
+  const fetchCancellationRequests = useCallback(async (bid) => {
+    try {
+      const response = await fetch(`${API_BASE}/bookingApi/cancellation-requests?branchId=${bid}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem("car24_token")}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return Array.isArray(data?.data) ? data.data : [];
+      }
+      return [];
+    } catch (err) {
+      console.error("Failed to fetch cancellation requests:", err);
+      return [];
+    }
+  }, [API_BASE]);
+
+  const fetchExtensionRequests = useCallback(async (bid) => {
+    try {
+      const response = await fetch(`${API_BASE}/bookingApi/extension-requests?branchId=${bid}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem("car24_token")}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return Array.isArray(data?.data) ? data.data : [];
+      }
+      return [];
+    } catch (err) {
+      console.error("Failed to fetch extension requests:", err);
+      return [];
+    }
+  }, [API_BASE]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -23,74 +66,84 @@ export default function BranchActivities() {
       setBranchId(bid);
 
       const [cancels, extensions] = await Promise.all([
-        getCancellationRequests(bid).catch(() => ({ data: [] })),
-        apiPost ? fetch(`${import.meta.env.VITE_API_URL}bookingApi/extension-requests?branchId=${bid}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("car24_token")}` }
-        }).then((r) => r.json()).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+        fetchCancellationRequests(bid),
+        fetchExtensionRequests(bid),
       ]);
 
-      setCancelRequests(Array.isArray(cancels?.data) ? cancels.data : []);
-      setExtensionRequests(Array.isArray(extensions?.data) ? extensions.data : []);
+      setCancelRequests(cancels);
+      setExtensionRequests(extensions);
     } catch (err) {
       setError(err.message || "Failed to load activities");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchCancellationRequests, fetchExtensionRequests]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleApproveCancel = async (bookingId) => {
     if (!window.confirm("Approve cancellation? Advance will be refunded to customer wallet.")) return;
+    setProcessingId(bookingId);
     try {
       await approveCancelBooking(bookingId);
-      load();
+      await load();
     } catch (err) {
       alert(err.message || "Failed");
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handleRejectCancel = async (bookingId) => {
     if (!window.confirm("Reject this cancellation request?")) return;
+    setProcessingId(bookingId);
     try {
       const token = localStorage.getItem("car24_token");
-      await fetch(`${import.meta.env.VITE_API_URL}bookingApi/reject-cancel/${bookingId}`, {
+      await fetch(`${API_BASE}/bookingApi/reject-cancel/${bookingId}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-      load();
+      await load();
     } catch (err) {
       alert(err.message || "Failed");
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handleApproveExtension = async (bookingId) => {
     if (!window.confirm("Approve this extension request?")) return;
+    setProcessingId(bookingId);
     try {
       const token = localStorage.getItem("car24_token");
-      await fetch(`${import.meta.env.VITE_API_URL}bookingApi/approveExtend`, {
+      await fetch(`${API_BASE}/bookingApi/approveExtend`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId }),
       });
-      load();
+      await load();
     } catch (err) {
       alert(err.message || "Failed");
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handleRejectExtension = async (bookingId) => {
     if (!window.confirm("Reject this extension request?")) return;
+    setProcessingId(bookingId);
     try {
       const token = localStorage.getItem("car24_token");
-      await fetch(`${import.meta.env.VITE_API_URL}bookingApi/rejectExtend`, {
+      await fetch(`${API_BASE}/bookingApi/rejectExtend`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId }),
       });
-      load();
+      await load();
     } catch (err) {
       alert(err.message || "Failed");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -260,9 +313,41 @@ export default function BranchActivities() {
                         <td style={{ padding: "14px 12px", color: "var(--bhd-text-secondary)", fontSize: 13 }}>{formatDateTime(req.dropoffDate)}</td>
                         <td style={{ padding: "14px 12px", color: "var(--bhd-accent)", fontWeight: 700 }}>{formatINR(req.advance_paid)}</td>
                         <td style={{ padding: "14px 12px" }}>
-                          <div className="bhd-actions">
-                            <button className="bhd-btn-confirm" onClick={() => handleApproveCancel(req.booking_id)}>✓ Approve</button>
-                            <button className="bhd-btn-cancel" onClick={() => handleRejectCancel(req.booking_id)}>✗ Reject</button>
+                          <div className="bhd-actions" style={{ display: "flex", gap: 8 }}>
+                            <button 
+                              onClick={() => handleApproveCancel(req.booking_id)}
+                              disabled={processingId === req.booking_id}
+                              style={{
+                                background: "#10b981",
+                                border: "1px solid #10b981",
+                                color: "#fff",
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                cursor: processingId === req.booking_id ? "not-allowed" : "pointer",
+                                fontWeight: 700,
+                                opacity: processingId === req.booking_id ? 0.85 : 1,
+                                boxShadow: "0 6px 14px rgba(16,185,129,0.12)",
+                              }}
+                            >
+                              {processingId === req.booking_id ? "✓ Processing..." : "✓ Approve"}
+                            </button>
+                            <button 
+                              onClick={() => handleRejectCancel(req.booking_id)}
+                              disabled={processingId === req.booking_id}
+                              style={{
+                                background: "#ef4444",
+                                border: "1px solid #ef4444",
+                                color: "#fff",
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                cursor: processingId === req.booking_id ? "not-allowed" : "pointer",
+                                fontWeight: 700,
+                                opacity: processingId === req.booking_id ? 0.85 : 1,
+                                boxShadow: "0 6px 14px rgba(239,68,68,0.12)",
+                              }}
+                            >
+                              ✗ Reject
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -286,7 +371,7 @@ export default function BranchActivities() {
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      {["Booking ID", "Customer", "Car", "Current Dropoff", "Extension", "Actions"].map((h) => (
+                      {["Booking ID", "Customer", "Car", "Current Dropoff", "Requested Extension", "Actions"].map((h) => (
                         <th key={h} style={{ padding: "12px", background: "var(--bhd-bg-tertiary)", color: "var(--bhd-text-muted)", fontSize: 12, textAlign: "left", fontWeight: 700 }}>{h}</th>
                       ))}
                     </tr>
@@ -319,9 +404,41 @@ export default function BranchActivities() {
                           </span>
                         </td>
                         <td style={{ padding: "14px 12px" }}>
-                          <div className="bhd-actions">
-                            <button className="bhd-btn-confirm" onClick={() => handleApproveExtension(req.booking_id)}>✓ Approve</button>
-                            <button className="bhd-btn-cancel" onClick={() => handleRejectExtension(req.booking_id)}>✗ Reject</button>
+                          <div className="bhd-actions" style={{ display: "flex", gap: 8 }}>
+                            <button 
+                              onClick={() => handleApproveExtension(req.booking_id)}
+                              disabled={processingId === req.booking_id}
+                              style={{
+                                background: "#10b981",
+                                border: "1px solid #10b981",
+                                color: "#fff",
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                cursor: processingId === req.booking_id ? "not-allowed" : "pointer",
+                                fontWeight: 700,
+                                opacity: processingId === req.booking_id ? 0.85 : 1,
+                                boxShadow: "0 6px 14px rgba(16,185,129,0.12)",
+                              }}
+                            >
+                              {processingId === req.booking_id ? "✓ Processing..." : "✓ Approve"}
+                            </button>
+                            <button 
+                              onClick={() => handleRejectExtension(req.booking_id)}
+                              disabled={processingId === req.booking_id}
+                              style={{
+                                background: "#ef4444",
+                                border: "1px solid #ef4444",
+                                color: "#fff",
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                cursor: processingId === req.booking_id ? "not-allowed" : "pointer",
+                                fontWeight: 700,
+                                opacity: processingId === req.booking_id ? 0.85 : 1,
+                                boxShadow: "0 6px 14px rgba(239,68,68,0.12)",
+                              }}
+                            >
+                              ✗ Reject
+                            </button>
                           </div>
                         </td>
                       </tr>
