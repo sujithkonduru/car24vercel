@@ -8,7 +8,39 @@
   border-radius: 20px;
   overflow: hidden;
 }
+/* Quick Duration Buttons */
+.bp-quick-durations {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
 
+.bp-duration-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bp-duration-btn:hover {
+  border-color: #1FB6D9;
+  background: #f0f9ff;
+  color: #1FB6D9;
+  transform: translateY(-1px);
+}
+
+.bp-duration-btn:active {
+  transform: translateY(0);
+}
 /* ── Header ── */
 .bp-header {
   display: flex;

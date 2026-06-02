@@ -174,50 +174,64 @@ const Contact = () => {
         transition={{ duration: 0.5 }}
       >
         {/* Hero Section with Parallax */}
-        <motion.section 
-          className={styles.hero}
-          style={{ opacity, scale }}
-          ref={sectionRef}
+       <motion.section 
+  className={styles.hero}
+  style={{ opacity, scale }}
+  ref={sectionRef}
+>
+  <div className={styles.heroBackground}>
+    {/* Background Image with proper sizing */}
+    <motion.div 
+      className={styles.heroImageWrapper}
+      initial={{ scale: 1.1 }}
+      animate={{ scale: 1 }}
+      transition={{ duration: 1.2 }}
+    >
+      {/* <img 
+        src="/path-to-your-image.jpg" 
+        alt="Contact background"
+        className={styles.heroImage}
+      /> */}
+    </motion.div>
+    
+    <motion.div 
+      className={styles.heroOverlay}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 0.6 }}
+      transition={{ duration: 1 }}
+    />
+  </div>
+  
+  <div className={styles.heroContent}>
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+    >
+      <span className={styles.heroBadge}>✦ Get in Touch</span>
+      <h1 className={styles.heroTitle}>
+        Let's Start a{" "}
+        <motion.span
+          className={styles.gradientText}
+          animate={{
+            backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "linear"
+          }}
         >
-          <div className={styles.heroBackground}>
-            <motion.div 
-              className={styles.heroOverlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              transition={{ duration: 1 }}
-            />
-          </div>
-          
-          <div className={styles.heroContent}>
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <span className={styles.heroBadge}>✦ Get in Touch</span>
-              <h1 className={styles.heroTitle}>
-                Let's Start a{" "}
-                <motion.span
-                  className={styles.gradientText}
-                  animate={{
-                    backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "linear"
-                  }}
-                >
-                  Conversation
-                </motion.span>
-              </h1>
-              <p className={styles.heroSubtitle}>
-                Have questions about our services? Need assistance with a booking? 
-                We're here to help. Reach out to us through any of the channels below.
-              </p>
-            </motion.div>
-          </div>
-        </motion.section>
+          Conversation
+        </motion.span>
+      </h1>
+      <p className={styles.heroSubtitle}>
+        Have questions about our services? Need assistance with a booking? 
+        We're here to help. Reach out to us through any of the channels below.
+      </p>
+    </motion.div>
+  </div>
+</motion.section>
 
         {/* Contact Information Cards - Centered Layout */}
         <motion.div 
@@ -452,7 +466,7 @@ const Contact = () => {
         </motion.section>
 
         {/* Floating Chat Button */}
-        <motion.a
+        {/* <motion.a
           href="#"
           className={styles.chatButton}
           whileHover={{ scale: 1.1 }}
@@ -463,11 +477,11 @@ const Contact = () => {
         >
           <MessageCircle size={24} />
           <span className={styles.chatTooltip}>Chat with us</span>
-        </motion.a>
+        </motion.a> */}
       </motion.div>
 
       {/* Scroll to Top Button */}
-      {showScrollTop && (
+      {/* {showScrollTop && (
         <motion.button
           className={styles.scrollTopButton}
           onClick={scrollToTop}
@@ -480,7 +494,7 @@ const Contact = () => {
           <ArrowUp size={24} />
           <span className={styles.scrollTopTooltip}>Back to Top</span>
         </motion.button>
-      )}
+      )} */}
     </>
   );
 };

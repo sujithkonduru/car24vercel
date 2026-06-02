@@ -168,12 +168,6 @@ const About = () => {
       description: 'Drive with confidence! We do not require security deposits for our verified users.',
       color: '#06b6d4'
     }
-    // {
-    //   icon: MapPin,
-    //   title: 'Pan India Network',
-    //   description: 'We are available in 100+ cities with pickup and drop-off at your convenience.',
-    //   color: '#ef4444'
-    // }
   ];
 
   // Stats data for display
@@ -368,17 +362,14 @@ const About = () => {
               animate={{ scale: 1 }}
               transition={{ duration: 8, ease: "easeOut" }}
             />
-            <button onClick={handleGoBack} className={styles.backButton} aria-label="Go back">
-              <ArrowLeft size={20} />
-              <span>Back</span>
-            </button>
-            <motion.div
-              className={styles.heroOverlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.5 }}
-            />
+            <div className={styles.heroOverlay} />
           </div>
+
+          {/* Fixed Back Button - Sticked to top */}
+          <button onClick={handleGoBack} className={styles.backButton} aria-label="Go back">
+            <ArrowLeft size={20} />
+            <span>Back</span>
+          </button>
 
           <div className={styles.heroContent}>
             <motion.span
@@ -815,22 +806,6 @@ const About = () => {
           </div>
         </section>
       </div>
-
-      {/* Scroll to Top Button */}
-      {/* {showScrollTop && (
-        <motion.button
-          className={styles.scrollTopButton}
-          onClick={scrollToTop}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ArrowUp size={24} />
-          <span className={styles.scrollTopTooltip}>Back to Top</span>
-        </motion.button>
-      )} */}
     </>
   )
 };

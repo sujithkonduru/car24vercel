@@ -52,51 +52,51 @@ function App() {
       <Layout>
         <Routes>
           {/* ── Public ── */}
-          {/* <Route path="/" element={<Home />} />   */}
+          <Route path="/" element={<Home />} />  
           {/* /cars is an alias for the home page cars section */}
-          {/* <Route path="/cars" element={<Navigate to="/#cars" replace />} />  */}
-          {/* <Route path="/car/:id" element={<CarDetail />} /> */}
-          {/* <Route path="/login" element={<Login />} /> */}
-          {/* <Route path="/register" element={<Register />} /> */}
-          {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
-          {/* <Route path="/about" element={<About />} /> */}
-          {/* <Route path="/contact" element={<Contact />} /> */}
-          {/* <Route path="/locations" element={<Locations />} /> */}
-          {/* <Route path="/faq" element={<FAQ />} /> */}
+          <Route path="/cars" element={<Navigate to="/#cars" replace />} /> 
+          <Route path="/car/:id" element={<CarDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/locations" element={<Locations />} />
+          <Route path="/faq" element={<FAQ />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-and-conditions" element={<TermsOfService />} />
           <Route path="/cancellation-policy" element={<CancellationPolicy />} />
-          {/* <Route path="/help" element={<Help />} /> */} 
+          <Route path="/help" element={<Help />} /> 
           {/* /register-owner is an alias for owner registration */}
-          {/* <Route path="/register-owner" element={<Navigate to="/owner/register" replace />} />  */}
-            <Route path="/" element={<LaunchPage />} /> 
+          <Route path="/register-owner" element={<Navigate to="/owner/register" replace />} /> 
+            {/* <Route path="/" element={<LaunchPage />} />  */}
 
           
-          {/* <Route
+          <Route
             path="/dashboard"
             element={
               <ProtectedRoute allowedRoles={["user", "owner"]}>
                 <UserDashboard />
               </ProtectedRoute>
             }
-          /> */}
-           {/* <Route
+          />
+           <Route
             path="/tracking/:bookingId"
             element={
               <ProtectedRoute allowedRoles={["user", "owner", "staff", "branch_head", "admin", "superadmin"]}>
                 <LiveTracking />
               </ProtectedRoute>
             }
-          /> */}
-          {/* <Route
+          />
+          <Route
             path="/bookings"
             element={
               <ProtectedRoute allowedRoles={["user", "owner"]}>
                 <MyBookings />
               </ProtectedRoute>
             }
-          /> */}
-          {/* <Route
+          />
+          <Route
             path="/profile"
             element={
               <ProtectedRoute allowedRoles={["user", "owner", "staff", "branch_head", "admin", "superadmin"]}>
@@ -207,7 +207,7 @@ function App() {
           <Route path="/branch/login" element={<BranchLogin />} />
           <Route path="/branch-verify" element={<BranchVerify />} />
           <Route
-            path="/branch/dashboard"
+            path="/branch_dashboard"
             element={
               <ProtectedRoute allowedRoles={["branch_head", "sub_admin"]} redirectTo="/branch/login">
                 <BranchDashboard />
@@ -224,7 +224,7 @@ function App() {
           /> 
           
           <Route
-            path="/branch/cars"
+            path="/branch_cars"
             element={
               <ProtectedRoute allowedRoles={["branch_head", "sub_admin"]} redirectTo="/branch/login">
                 <BranchFleet />
@@ -273,18 +273,14 @@ function App() {
                 <SuperAdminDashboard />
               </ProtectedRoute>
             }
-          /> */}
-          {/* <Route
+          />
+          <Route
             path="/branch/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={["branch_head", "sub_admin"]} redirectTo="/branch/login">
-                <BranchDashboard />
-              </ProtectedRoute>
-            }
-          />  */}
+            element={<Navigate to="/branch_dashboard" replace />}
+          />
 
           
-          {/* <Route path="*" element={<NotFound />} /> */}
+          <Route path="*" element={<NotFound />} />
         </Routes> 
      </Layout>
     </AuthProvider>

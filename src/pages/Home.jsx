@@ -82,7 +82,7 @@ const TESTIMONIALS = [
 const HOW_STEPS = [
   { num: "01", title: "Choose Your Car", desc: "Browse our fleet and pick the perfect car for your trip — filter by type, fuel, or seats." },
   { num: "02", title: "Select Dates", desc: "Pick your pickup and drop-off date & time. See live pricing with no hidden charges." },
-  { num: "03", title: "Pay & Confirm", desc: "Pay just 30% advance online. Get instant booking confirmation with your OTP." },
+  { num: "03", title: "Pay & Confirm", desc: "Simply pay the advance online and receive instant booking confirmation along with your OTP." },
   { num: "04", title: "Drive & Enjoy", desc: "Show your OTP at pickup, collect the keys, and hit the road. It's that simple!" },
 ];
 
@@ -171,45 +171,163 @@ export default function Home() {
           </div>
 
           {/* ── Inline Search Bar (drselfdrives style) ── */}
-          <div className="hp-search-bar">
-            <div className="hp-search-field">
-              <label className="hp-search-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+          <div className="hp-search-wrapper">
+            <div className="hp-search-bar">
+              <div className="hp-search-field">
+                <label className="hp-search-label">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span>Location</span>
+                </label>
+                <div className="hp-select-wrapper">
+                  <select name="branch" value={filters.branch} onChange={onFilterChange} className="hp-search-input hp-select">
+                    <option value="">All Branches</option>
+                    {branches.map(b => <option key={b.id} value={b.id}>{b.name} — {b.city}</option>)}
+                  </select>
+                  <svg className="hp-select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="hp-search-divider">
+                <div className="hp-divider-line"></div>
+                <div className="hp-divider-icon">
+  <i className="fa-solid fa-location-dot"></i>
+</div>
+                <div className="hp-divider-line"></div>
+              </div>
+
+              <div className="hp-search-field hp-date-field">
+                <label className="hp-search-label">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  <span>Pickup</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  name="pickupDate"
+                  value={filters.pickupDate}
+                  onChange={onFilterChange}
+                  className="hp-search-input hp-date-input"
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              </div>
+
+              <div className="hp-search-divider hp-duration-divider">
+                <div className="hp-duration-pill">
+                  <span className="hp-duration-text">
+                    {filters.pickupDate && filters.dropoffDate ?
+                      `${Math.round((new Date(filters.dropoffDate) - new Date(filters.pickupDate)) / (1000 * 60 * 60))} hrs` :
+                      'Duration'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="hp-search-field hp-date-field">
+                <label className="hp-search-label">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  <span>Drop-off</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  name="dropoffDate"
+                  value={filters.dropoffDate}
+                  onChange={onFilterChange}
+                  className="hp-search-input hp-date-input"
+                  min={filters.pickupDate || new Date().toISOString().slice(0, 16)}
+                />
+              </div>
+
+              <button className="hp-search-btn" onClick={() => { setPage(0); loadCars(); document.getElementById("cars")?.scrollIntoView({ behavior: "smooth" }); }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
                 </svg>
-                Location
-              </label>
-              <select name="branch" value={filters.branch} onChange={onFilterChange} className="hp-search-input">
-                <option value="">All Branches</option>
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name} — {b.city}</option>)}
-              </select>
+                <span>Find Cars</span>
+              </button>
             </div>
-            <div className="hp-search-divider" />
-            <div className="hp-search-field">
-              <label className="hp-search-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                Pickup Date
-              </label>
-              <input type="datetime-local" name="pickupDate" value={filters.pickupDate} onChange={onFilterChange} className="hp-search-input" />
+
+            {/* Quick Duration Chips */}
+            <div className="hp-quick-chips">
+              <button
+                className="hp-chip"
+                onClick={() => {
+                  const pickup = new Date();
+                  pickup.setHours(10, 0, 0, 0);
+                  const dropoff = new Date(pickup);
+                  dropoff.setHours(pickup.getHours() + 6);
+                  document.querySelector('[name="pickupDate"]').value = pickup.toISOString().slice(0, 16);
+                  document.querySelector('[name="dropoffDate"]').value = dropoff.toISOString().slice(0, 16);
+                  // Trigger change event
+                  const changeEvent = new Event('change', { bubbles: true });
+                  document.querySelector('[name="pickupDate"]').dispatchEvent(changeEvent);
+                  document.querySelector('[name="dropoffDate"]').dispatchEvent(changeEvent);
+                }}
+              >
+                <span>🕐</span> 6 Hours
+              </button>
+              <button
+                className="hp-chip"
+                onClick={() => {
+                  const pickup = new Date();
+                  pickup.setHours(10, 0, 0, 0);
+                  const dropoff = new Date(pickup);
+                  dropoff.setHours(pickup.getHours() + 12);
+                  document.querySelector('[name="pickupDate"]').value = pickup.toISOString().slice(0, 16);
+                  document.querySelector('[name="dropoffDate"]').value = dropoff.toISOString().slice(0, 16);
+                  const changeEvent = new Event('change', { bubbles: true });
+                  document.querySelector('[name="pickupDate"]').dispatchEvent(changeEvent);
+                  document.querySelector('[name="dropoffDate"]').dispatchEvent(changeEvent);
+                }}
+              >
+                <span>⚡</span> 12 Hours
+              </button>
+              <button
+                className="hp-chip"
+                onClick={() => {
+                  const pickup = new Date();
+                  pickup.setHours(10, 0, 0, 0);
+                  const dropoff = new Date(pickup);
+                  dropoff.setDate(pickup.getDate() + 1);
+                  document.querySelector('[name="pickupDate"]').value = pickup.toISOString().slice(0, 16);
+                  document.querySelector('[name="dropoffDate"]').value = dropoff.toISOString().slice(0, 16);
+                  const changeEvent = new Event('change', { bubbles: true });
+                  document.querySelector('[name="pickupDate"]').dispatchEvent(changeEvent);
+                  document.querySelector('[name="dropoffDate"]').dispatchEvent(changeEvent);
+                }}
+              >
+                <span>📅</span> 1 Day
+              </button>
+              <button
+                className="hp-chip hp-chip-highlight"
+                onClick={() => {
+                  const pickup = new Date();
+                  pickup.setHours(22, 0, 0, 0);
+                  if (new Date() > pickup) pickup.setDate(pickup.getDate() + 1);
+                  const dropoff = new Date(pickup);
+                  dropoff.setHours(pickup.getHours() + 6);
+                  document.querySelector('[name="pickupDate"]').value = pickup.toISOString().slice(0, 16);
+                  document.querySelector('[name="dropoffDate"]').value = dropoff.toISOString().slice(0, 16);
+                  const changeEvent = new Event('change', { bubbles: true });
+                  document.querySelector('[name="pickupDate"]').dispatchEvent(changeEvent);
+                  document.querySelector('[name="dropoffDate"]').dispatchEvent(changeEvent);
+                }}
+              >
+                <span>🌙</span> Night Pickup 
+              </button>
             </div>
-            <div className="hp-search-divider" />
-            <div className="hp-search-field">
-              <label className="hp-search-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                Drop-off Date
-              </label>
-              <input type="datetime-local" name="dropoffDate" value={filters.dropoffDate} onChange={onFilterChange} className="hp-search-input" />
-            </div>
-            <button className="hp-search-btn" onClick={() => { setPage(0); loadCars(); document.getElementById("cars")?.scrollIntoView({ behavior: "smooth" }); }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-              Search Cars
-            </button>
           </div>
 
           {/* Stats strip */}

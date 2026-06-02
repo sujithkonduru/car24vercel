@@ -101,7 +101,7 @@ export default function BranchVerify() {
         setMessage("✓ Email verified successfully! Redirecting to branch dashboard...");
         
         setTimeout(() => {
-          navigate("/branch/dashboard");
+          navigate("/branch_dashboard");
         }, 1500);
       } else {
         setError(res?.message || "Invalid OTP or verification failed. Please try again.");

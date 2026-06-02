@@ -16,7 +16,6 @@ const ROLE_LABEL = {
 
 const NAV_LINKS = [
   { to: "/", label: "Home", end: true },
-  // { to: "/cars", label: "Cars" },
   { to: "/bookings", label: "Bookings" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
@@ -48,28 +47,71 @@ const ChevronDown = () => (
   </svg>
 );
 
+const BellIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const AlertCircleIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
 export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
-  if (!auth) {
-    return (
-      <div className="lyt-shell">
-        <div style={{padding: '2rem', textAlign: 'center', color: '#666'}}>
-          Loading...
-        </div>
-      </div>
-    );
-  }
-  const { token, user, role, isOwner, isAdmin, isBranchHead, isStaff, logout } = auth;
+  
+  // ✅ ALL HOOKS MUST BE DECLARED BEFORE ANY CONDITIONAL RETURNS
+  
+  // Safely extract values with defaults (in case auth is null)
+  const token = auth?.token || null;
+  const user = auth?.user || null;
+  const role = auth?.role || null;
+  const isOwner = auth?.isOwner || false;
+  const isAdmin = auth?.isAdmin || false;
+  const isBranchHead = auth?.isBranchHead || false;
+  const isStaff = auth?.isStaff || false;
+  const logout = auth?.logout || (() => {});
+  
   const loggedIn = !!token;
 
+  // ALL state declarations (unconditional)
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  
+  // ALL refs (unconditional)
   const dropdownRef = useRef(null);
+  const notificationsRef = useRef(null);
 
-  useEffect(() => setMenuOpen(false), [location.pathname]);
+  // ALL effects (unconditional - they will run regardless, but can check conditions inside)
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -82,24 +124,169 @@ export default function Layout({ children }) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target)) {
+        setNotificationsOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  function handleLogout() {
+  // Fetch notifications when logged in (condition inside effect, not conditional hook)
+  useEffect(() => {
+    if (loggedIn) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [loggedIn]);
+
+  // Helper functions
+  const fetchNotifications = async () => {
+    if (!loggedIn) return;
+    
+    setLoadingNotifications(true);
+    try {
+      const response = await fetch("https://backend.car24travels.com/api/notifications/getNotifications", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Notifications:", data);
+        
+        let notificationsList = [];
+        if (Array.isArray(data)) {
+          notificationsList = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          notificationsList = data.data;
+        } else if (data?.notifications && Array.isArray(data.notifications)) {
+          notificationsList = data.notifications;
+        }
+        
+        setNotifications(notificationsList);
+        const unread = notificationsList.filter(n => !n.read).length;
+        setUnreadCount(unread);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    if (!loggedIn) return;
+    try {
+      const response = await fetch(`https://backend.car24travels.com/api/notifications/markAsRead/${notificationId}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(n => 
+            n.id === notificationId ? { ...n, read: true } : n
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!loggedIn) return;
+    try {
+      const response = await fetch(`https://backend.car24travels.com/api/notifications/markAllAsRead`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (response.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+    if (notification.link) {
+      navigate(notification.link);
+      setNotificationsOpen(false);
+    }
+  };
+
+  const formatNotificationTime = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "booking_confirmed":
+      case "booking_created":
+      case "payment_received":
+        return <CheckCircleIcon />;
+      case "cancel_request":
+      case "booking_cancelled":
+        return <AlertCircleIcon />;
+      default:
+        return <BellIcon />;
+    }
+  };
+
+  const handleLogout = () => {
     logout();
     setDropdownOpen(false);
     navigate("/");
-  }
+  };
 
-  function getDashboardLink() {
+  const getDashboardLink = () => {
     if (isOwner) return "/owner/dashboard";
     if (role === "superadmin") return "/superadmin/dashboard";
     if (isAdmin) return "/admin/dashboard";
-    if (isBranchHead) return "/branch/dashboard";
+    if (isBranchHead) return "/branch_dashboard";
     if (isStaff) return "/staff/dashboard";
     return "/dashboard";
+  };
+
+  // ✅ NO EARLY RETURN! Instead, conditionally render content
+  // If auth is not loaded yet, show loading state
+  if (!auth) {
+    return (
+      <div className="lyt-shell">
+        <div style={{padding: '2rem', textAlign: 'center', color: '#666'}}>
+          Loading...
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -147,6 +334,66 @@ export default function Layout({ children }) {
           </div>
 
           <div className="lyt-actions-divider" />
+
+          {/* Notifications Bell */}
+          {loggedIn && (
+            <div className="lyt-notifications-wrap" ref={notificationsRef}>
+              <button
+                className={`lyt-notification-btn ${unreadCount > 0 ? "has-notifications" : ""}`}
+                onClick={() => setNotificationsOpen(o => !o)}
+                aria-expanded={notificationsOpen}
+              >
+                <BellIcon />
+                {unreadCount > 0 && (
+                  <span className="notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="lyt-notifications-dropdown">
+                  <div className="lyt-notifications-header">
+                    <h3>Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button className="mark-all-read" onClick={markAllAsRead}>
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="lyt-notifications-list">
+                    {loadingNotifications ? (
+                      <div className="notifications-loading">Loading notifications...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="notifications-empty">
+                        <BellIcon />
+                        <p>No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`notification-item ${!notification.read ? "unread" : ""}`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="notification-icon">
+                            {getNotificationIcon(notification.type)}
+                          </div>
+                          <div className="notification-content">
+                            <div className="notification-title">{notification.title}</div>
+                            <div className="notification-message">{notification.message}</div>
+                            <div className="notification-time">
+                              {formatNotificationTime(notification.createdAt || notification.created_at)}
+                            </div>
+                          </div>
+                          {!notification.read && <div className="notification-unread-dot" />}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Auth */}
           {loggedIn ? (
@@ -319,7 +566,7 @@ export default function Layout({ children }) {
             </a>
             <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer" className="lyt-footer-contact-item">
               <span className="lyt-fci-icon lyt-fci-ig"><InstagramIcon /></span>
-              <span>@car24india</span>
+              <span>@car24TravelsOfficial</span>
             </a>
             <a href={`tel:${PHONE}`} className="lyt-footer-contact-item">
               <span className="lyt-fci-icon lyt-fci-ph"><PhoneIcon /></span>
@@ -330,13 +577,29 @@ export default function Layout({ children }) {
         </div>
 
         <div className="lyt-footer-bottom">
-          <p>© {new Date().getFullYear()} Car24. All rights reserved.</p>
-          <div className="lyt-footer-bottom-links">
-            <Link to="/privacy-policy">Privacy Policy</Link>
-            <Link to="/terms-and-conditions">Terms of Service</Link>
-            <Link to="/cancellation-policy">Cancellation Policy</Link>
-          </div>
-        </div>
+  <div className="lyt-footer-bottom-left">
+    <p>
+      © {new Date().getFullYear()} Car24. All rights reserved.
+    </p>
+
+    <span className="lyt-powered-by">
+      Powered by{" "}
+      <a
+        href="https://www.stackenzo.com"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Stackenzo
+      </a>
+    </span>
+  </div>
+
+  <div className="lyt-footer-bottom-links">
+    <Link to="/privacy-policy">Privacy Policy</Link>
+    <Link to="/terms-and-conditions">Terms of Service</Link>
+    <Link to="/cancellation-policy">Cancellation Policy</Link>
+  </div>
+</div>
       </footer>
     </div>
   );

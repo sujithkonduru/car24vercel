@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiPost } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { decodeToken } from "../context/AuthContext.jsx";
-import "./Login.css";
+import "./StaffLogin.css";
 
 export default function StaffLogin() {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ export default function StaffLogin() {
         if (role === "admin" || role === "superadmin") {
           navigate("/admin/dashboard");
         } else if (role === "branch_head" || role === "sub_admin" || role === "subadmin") {
-          navigate("/branch/dashboard");
+          navigate("/branch_dashboard");
         } else if (role === "staff") {
           navigate("/staff/dashboard");
         } else {
@@ -104,7 +104,7 @@ export default function StaffLogin() {
         </div>
       </div>
 
-      <style>{`
+      {/* <style>{`
         .portal-badge {
           display: inline-flex;
           align-items: center;
@@ -123,9 +123,9 @@ export default function StaffLogin() {
         .staff-badge {
           background: rgba(59,130,246,0.1);
           border-color: rgba(59,130,246,0.3);
-          color: #3b82f6;
+          color: #3b83f685;
         }
-      `}</style>
+      `}</style> */}
     </div>
   );
 }

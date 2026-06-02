@@ -6,14 +6,22 @@ import { carImageUrl } from "../utils/carImage.js";
 import { printBookingReceipt } from "../utils/receiptUtils.js";
 import "./MyBooking.css";
 
-function formatDt(iso) {
-  if (!iso) return "—";
+// Helper function to format ISO date to regular time format
+function formatDateTime(dateTimeStr) {
+  if (!dateTimeStr) return "—";
   try {
-    return new Date(iso).toLocaleString("en-IN", {
-      day: "numeric", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+    const date = new Date(dateTimeStr);
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
     });
-  } catch { return iso; }
+  } catch {
+    return dateTimeStr;
+  }
 }
 
 function statusClass(status) {
@@ -42,6 +50,7 @@ export default function MyBookings() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
+  const [cancellationStatus, setCancellationStatus] = useState({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,14 +68,17 @@ export default function MyBookings() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function cancelBooking(id) {
-    if (!window.confirm("Cancel this booking? Advance may be refunded as credits per server rules.")) return;
+  // FIXED: Use the correct endpoint - request-cancel instead of cancelBooking
+  async function requestCancellation(id) {
+    if (!window.confirm("Request cancellation for this booking? Your request will be sent to staff for approval.")) return;
     setActionId(id);
     try {
-      await apiPost(`/bookingApi/cancelBooking/${id}`, {}, { withAuth: true });
-      await load();
+      await apiPost(`/bookingApi/request-cancel/${id}`, {}, { withAuth: true });
+      // Update the cancellation status locally
+      setCancellationStatus(prev => ({ ...prev, [id]: 'pending' }));
+      await load(); // Reload to get updated status
     } catch (e) {
-      setError(e.message || "Cancel failed");
+      setError(e.message || "Cancellation request failed");
     } finally {
       setActionId(null);
     }
@@ -113,23 +125,39 @@ export default function MyBookings() {
           {list.map((b, idx) => {
             const thumb = carImageUrl({ images: b.images });
             
-            // FIXED: Cannot cancel if:
-            // 1. Already cancelled
-            // 2. Already completed
-            // 3. Used credits (since credits can't be refunded)
-            // 4. Booking is in the past (completed)
-            // 5. Payment is completed (ride already finished)
+            // Check various statuses
             const isCancelled = b.status === "cancelled";
             const isCompleted = b.status === "completed";
             const isOngoing = b.status === "ongoing" || b.status === "active";
             const isConfirmed = b.status === "confirmed";
             const isPending = b.status === "pending";
             const usedCredits = Number(b.credits_used || 0) > 0;
+            const hasPendingCancellation = b.cancellation_status === 'pending';
+            const hasApprovedCancellation = b.cancellation_status === 'approved';
+            const hasRejectedCancellation = b.cancellation_status === 'rejected';
             
-            // Can cancel only if NOT cancelled, NOT completed, and NOT used credits
-            const canCancel = !isCancelled && !isCompleted && !usedCredits && (isConfirmed || isOngoing || isPending);
+            // Can request cancellation only if:
+            // 1. Not already cancelled
+            // 2. Not completed
+            // 3. Not paid with credits
+            // 4. No pending cancellation request already
+            const canRequestCancel = !isCancelled && 
+                                     !isCompleted && 
+                                     !usedCredits && 
+                                     !hasPendingCancellation &&
+                                     (isConfirmed || isOngoing || isPending);
             
             const displayStatus = b.display_status || b.status || "pending";
+            
+            // Show cancellation request status if pending
+            let cancellationMessage = null;
+            if (hasPendingCancellation) {
+              cancellationMessage = { type: 'pending', text: '⏳ Cancellation request pending approval' };
+            } else if (hasApprovedCancellation) {
+              cancellationMessage = { type: 'approved', text: '✓ Cancellation approved' };
+            } else if (hasRejectedCancellation) {
+              cancellationMessage = { type: 'rejected', text: '✗ Cancellation request rejected' };
+            }
 
             return (
               <article key={b.id} className="mb-card" style={{ animationDelay: `${idx * 0.06}s` }}>
@@ -153,11 +181,11 @@ export default function MyBookings() {
                   <div className="mb-details">
                     <div className="mb-detail">
                       <span className="mb-detail-label">Pickup</span>
-                      <span className="mb-detail-value">{formatDt(b.pickupDate)}</span>
+                      <span className="mb-detail-value">{formatDateTime(b.pickupDate)}</span>
                     </div>
                     <div className="mb-detail">
                       <span className="mb-detail-label">Drop-off</span>
-                      <span className="mb-detail-value">{formatDt(b.dropoffDate)}</span>
+                      <span className="mb-detail-value">{formatDateTime(b.dropoffDate)}</span>
                     </div>
                     <div className="mb-detail">
                       <span className="mb-detail-label">Total</span>
@@ -183,6 +211,13 @@ export default function MyBookings() {
                     )}
                   </div>
 
+                  {/* Cancellation Status Message */}
+                  {cancellationMessage && (
+                    <div className={`mb-cancellation-message mb-cancellation-${cancellationMessage.type}`}>
+                      {cancellationMessage.text}
+                    </div>
+                  )}
+
                   <div className="mb-actions">
                     <Link to="/" className="mb-btn-ghost">Browse more</Link>
                     
@@ -204,22 +239,22 @@ export default function MyBookings() {
                       </Link>
                     )}
                     
-                    {/* Show cancel button only if allowed */}
-                    {canCancel && (
+                    {/* Show request cancellation button */}
+                    {canRequestCancel && (
                       <button
                         type="button"
                         className="mb-btn-danger"
                         disabled={actionId === b.id}
-                        onClick={() => cancelBooking(b.id)}
+                        onClick={() => requestCancellation(b.id)}
                       >
-                        {actionId === b.id ? "Cancelling…" : "Cancel booking"}
+                        {actionId === b.id ? "Requesting…" : "Request Cancellation"}
                       </button>
                     )}
                     
                     {/* Show message for completed bookings */}
                     {isCompleted && (
                       <span className="mb-completed-message">
-                        ✓ Trip completed on {formatDt(b.dropoffDate)}
+                        ✓ Trip completed on {formatDateTime(b.dropoffDate)}
                       </span>
                     )}
                     

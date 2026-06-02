@@ -10,12 +10,12 @@ function roleRedirect(role) {
   switch (role) {
     case "owner":      return "/owner/dashboard";
     case "staff":      return "/staff/dashboard";
-    case "sub_admin":
-    case "subadmin":   return "/branch/dashboard";
-    case "branch_head": return "/branch/dashboard";
+    
+    case "sub_admin":   return "/branch_dashboard";
+    case "branch_head": return "/branch_dashboard";
     case "admin":      return "/admin/dashboard";
     case "superadmin": return "/superadmin/dashboard";
-    default:           return "/dashboard";
+    default:           return "/";
   }
 }
 

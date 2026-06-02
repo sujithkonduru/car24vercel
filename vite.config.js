@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig} from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -9,7 +9,6 @@ export default defineConfig({
       '/bookingApi': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/bookingApi/, '/bookingApi')
       },
       '/cars': {
         target: 'http://localhost:3000',
@@ -67,7 +66,8 @@ export default defineConfig({
           });
         }
       },
-      '/branch': {
+      // Use regex to match /branch/* API routes ONLY (not frontend routes like /branch_dashboard)
+      '^/branch/': {
         target: 'http://localhost:3000',
         changeOrigin: true,
         configure: (proxy, _options) => {
@@ -84,6 +84,62 @@ export default defineConfig({
           });
         }
       },
+      // ⭐ ADD THESE MISSING PROXY ROUTES ⭐
+      // '/branch_dashboard': {
+      //   target: 'http://localhost:3000',
+      //   changeOrigin: true,
+      //   configure: (proxy, _options) => {
+      //     proxy.on('proxyReq', (proxyReq, req, _res) => {
+      //       if (req.headers.authorization) {
+      //         proxyReq.setHeader('Authorization', req.headers.authorization);
+      //       }
+      //     });
+      //   }
+      // },
+      // '/branch_cars': {
+      //   target: 'http://localhost:3000',
+      //   changeOrigin: true,
+      //   configure: (proxy, _options) => {
+      //     proxy.on('proxyReq', (proxyReq, req, _res) => {
+      //       if (req.headers.authorization) {
+      //         proxyReq.setHeader('Authorization', req.headers.authorization);
+      //       }
+      //     });
+      //   }
+      // },
+      // '/update-booking-status': {
+      //   target: 'http://localhost:3000',
+      //   changeOrigin: true,
+      //   configure: (proxy, _options) => {
+      //     proxy.on('proxyReq', (proxyReq, req, _res) => {
+      //       if (req.headers.authorization) {
+      //         proxyReq.setHeader('Authorization', req.headers.authorization);
+      //       }
+      //     });
+      //   }
+      // },
+      // '/verify-booking-start': {
+      //   target: 'http://localhost:3000',
+      //   changeOrigin: true,
+      //   configure: (proxy, _options) => {
+      //     proxy.on('proxyReq', (proxyReq, req, _res) => {
+      //       if (req.headers.authorization) {
+      //         proxyReq.setHeader('Authorization', req.headers.authorization);
+      //       }
+      //     });
+      //   }
+      // },
+      // '/verify-booking-end': {
+      //   target: 'http://localhost:3000',
+      //   changeOrigin: true,
+      //   configure: (proxy, _options) => {
+      //     proxy.on('proxyReq', (proxyReq, req, _res) => {
+      //       if (req.headers.authorization) {
+      //         proxyReq.setHeader('Authorization', req.headers.authorization);
+      //       }
+      //     });
+      //   }
+      // },
       '/photoUpload': {
         target: 'http://localhost:3000',
         changeOrigin: true,

@@ -12,11 +12,38 @@
 /* Header */
 .fleet-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 1rem;
+  margin-bottom: 24px;
+}
+
+.fleet-back-btn {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  color: #0f172a;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.fleet-back-btn:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.25);
+  transform: translateY(-1px);
+}
+
+.fleet-header-title {
+  flex: 1;
+  min-width: 220px;
+}
+
+.fleet-header-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
 }
 
 .fleet-header h1 {

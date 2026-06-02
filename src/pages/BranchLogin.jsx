@@ -18,12 +18,12 @@ export default function BranchLogin() {
     setLoading(true);
     setError("");
     try {
-      const res = await apiPost("/user/userLogin", { email, password });
+      const res = await apiPost("/user/userLoginnn", { email, password });
       if (res.Logintoken) {
         setAuth(res.Logintoken);
         const decoded = decodeToken(res.Logintoken);
-        if (decoded?.role === "branch_head") {
-          navigate("/branch/dashboard");
+        if (decoded?.role === "branch_head" || decoded?.role === "sub_admin") {
+          navigate("/branch_dashboard");
         } else if (decoded?.role === "admin" || decoded?.role === "superadmin") {
           navigate("/admin/dashboard");
         } else if (decoded?.role === "staff") {

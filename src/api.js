@@ -229,11 +229,64 @@ export async function getOwnerData() {
 // Add to api.js
 export async function getCarGpsLocation(carId) {
   try {
-    const response = await apiGet(`/carGps/${carId}`, { withAuth: true });
-    return response;
-  } catch (error) {
-    console.error("Failed to get car GPS location:", error);
-    throw error;
+    // First try the real GPS endpoint
+    return await apiGet(`/cars/carGps/${carId}`, { withAuth: true });
+  } catch (err) {
+    // If backend crashes (500), fetch license plate ourselves and call WheelsEye directly
+    if (err?.status === 500 || err?.status === 404) {
+      try {
+        // Get car details to extract license plate
+        const carData = await apiGet(`/bookingApi/getBooking/${carId}`, { withAuth: true })
+          .catch(() => null);
+
+        // Try getting from cars endpoint directly  
+        const carRes = await apiGet(`/cars/get_car/${carId}`, { withAuth: true })
+          .catch(() => null);
+
+        const licensePlate = 
+          carRes?.licensePlate || 
+          carRes?.licenseplate ||
+          carData?.licensePlate ||
+          carData?.car_plate ||
+          null;
+
+        if (!licensePlate) {
+          throw new Error("Could not find license plate for this vehicle");
+        }
+
+        // Call WheelsEye directly from frontend
+        const wheelsEyeRes = await fetch(
+          "https://api.wheelseye.com/currentLoc?accessToken=5592c132-c784-401e-8b37-dcf7ff478f38"
+        );
+        const wheelsEyeData = await wheelsEyeRes.json();
+        const vehicles = wheelsEyeData?.data?.list || [];
+
+        const vehicle = vehicles.find(
+          (v) =>
+            v.vehicleNumber.replace(/\s/g, "").toLowerCase() ===
+            licensePlate.replace(/\s/g, "").toLowerCase()
+        );
+
+        if (!vehicle) {
+          throw new Error(`Vehicle ${licensePlate} not found in GPS tracker`);
+        }
+
+        return {
+          success: true,
+          carId,
+          location: {
+            latitude: vehicle.latitude,
+            longitude: vehicle.longitude,
+            speed: vehicle.speed,
+            ignition: vehicle.ignition,
+            time: vehicle.dttime,
+          },
+        };
+      } catch (fallbackErr) {
+        throw new Error(fallbackErr.message || "GPS unavailable");
+      }
+    }
+    throw err;
   }
 }
 export async function getOwnerDashboardData() {
@@ -443,11 +496,14 @@ export async function getBranchRevenue() {
   }
 }
 
-export async function getBranchIncome(branchId) {
+export async function getBranchIncome(branchId, fromDate, toDate) {
   try {
-    const response = await apiGet(`/roleauth/get_income/${branchId}`, { withAuth: true });
+    const response = await apiGet(`/roleauth/get_income/${branchId}`, {
+      withAuth: true,
+      query: fromDate && toDate ? { fromDate, toDate } : {}
+    });
     return response?.data || [];
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -490,10 +546,17 @@ export async function getBookingDetails(bookingId) {
 }
 
 // ── Staff ─────────────────────────────────────────────────
-export async function getStaffTasks(date) {
-  const d = date || new Date().toISOString().slice(0, 10);
-  return apiGet("/bookingApi/getStaffTasks", { withAuth: true, query: { date: d } });
-}
+// export async function getStaffTasks(date, branchId) {
+//   const d = date || new Date().toISOString().slice(0, 10);
+
+//   return apiGet("/bookingApi/getStaffTasks", {
+//     withAuth: true,
+//     query: {
+//       date: d,
+//       branch_id: branchId,
+//     },
+//   });
+// }
 
 export async function verifyCarKey(bookingId, key, id) {
   return apiGet("/bookingApi/carKeyVerify", { withAuth: true, query: { bookingId, key, id } });
@@ -541,9 +604,16 @@ export async function collectRemainingPayment(data) {
 }
 
 // ── Branch Head Dashboard ──────────────────────────────────
-export async function getBranchDashboardStats(branchId) {
+export async function getBranchDashboardStats(branchId, fromDate, toDate) {
   if (!branchId) return {};
-  return apiGet(`/roleauth/branch_dashboard/${branchId}`, { withAuth: true });
+  try {
+    return await apiGet(`/roleauth/branch_dashboard/${branchId}`, {
+      withAuth: true,
+      query: fromDate && toDate ? { fromDate, toDate } : {}
+    });
+  } catch {
+    return { totalBookings: 0, completedBookings: 0, cancelledBookings: 0, onRoadToday: 0, totalCars: 0, idleCars: 0 };
+  }
 }
 
 export async function getBranchDashboardStatsWithDate(branchId, month) {
@@ -566,19 +636,44 @@ export async function getBranchDashboardStatsWithDate(branchId, month) {
 }
 
 export async function getBranchBookingsByDate(branchId, date) {
-  if (!branchId) return { data: [] };
+  if (!branchId) {
+    console.warn("No branchId provided");
+    return [];
+  }
+  
+  if (!date) {
+    console.warn("No date provided");
+    return [];
+  }
+  
   try {
     const response = await apiGet("/bookingApi/getBranchBookingsByDate", {
       withAuth: true,
       query: { branchId, date }
     });
-    return response;
+    
+    console.log("Raw API response:", response);
+    
+    // ✅ CRITICAL FIX: Extract the data array from the response
+    if (response && response.data && Array.isArray(response.data)) {
+      console.log(`✅ Found ${response.data.length} bookings`);
+      return response.data;  // Return JUST the array
+    }
+    
+    // Fallback if response is already an array
+    if (Array.isArray(response)) {
+      console.log(`✅ Found ${response.length} bookings (direct array)`);
+      return response;
+    }
+    
+    console.warn("Unexpected response format:", response);
+    return [];
+    
   } catch (error) {
     console.error("Failed to get branch bookings:", error);
-    return { data: [] };
+    return [];
   }
 }
-
 export async function getBranchHeadProfile() {
   return apiGet("/roleauth/getManagementProfile", { withAuth: true });
 }
@@ -727,6 +822,181 @@ export function getStatusColor(status) {
   return colors[status] || "#6b7280";
 }
 
+
+// src/services/api.js
+// const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
+// Add this to your api.js file (around line 450+ after your other exports)
+
+// ── Firebase Push Notifications ──────────────────────────────────
+export async function addFirebaseToken(fcmToken, email) {
+  try {
+    // Use the same API_BASE as your other endpoints
+    const response = await apiPut("/addFirebaseToken", { 
+      token: fcmToken, 
+      email: email 
+    }, { withAuth: true });
+    
+    return response;
+  } catch (error) {
+    console.error('Error adding Firebase token:', error);
+    throw error;
+  }
+}
+
+// Optional: Send push notification to user
+export async function sendPushNotification(email, title, body, data = {}) {
+  try {
+    const response = await apiPost("/sendPushNotification", {
+      email,
+      title,
+      body,
+      data
+    }, { withAuth: true });
+    
+    return response;
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    throw error;
+  }
+}
+
+// Optional: Get user's notification preferences
+export async function getNotificationPreferences() {
+  try {
+    const response = await apiGet("/user/notificationPreferences", { withAuth: true });
+    return response;
+  } catch (error) {
+    console.error('Error getting notification preferences:', error);
+    return { enabled: true, types: [] };
+  }
+}
+
+// Optional: Update notification preferences
+export async function updateNotificationPreferences(preferences) {
+  try {
+    const response = await apiPut("/user/notificationPreferences", preferences, { withAuth: true });
+    return response;
+  } catch (error) {
+    console.error('Error updating notification preferences:', error);
+    throw error;
+  }
+}
+
+
+export const createOfflineBooking = async (bookingData) => {
+  try {
+    // FIXED: Get token using the correct key 'car24_token' from localStorage
+    // Your authHeaders() function already does this correctly, so let's reuse it
+    const token = localStorage.getItem('car24_token');
+    
+    console.log('Creating offline booking with token:', !!token);
+    
+    if (!token) {
+      console.error('No car24_token found in localStorage. Available keys:', Object.keys(localStorage));
+      throw new Error('No authentication token found. Please login again.');
+    }
+
+    // FIXED: Use the correct API endpoint with API_BASE
+    const response = await fetch(`${API_BASE}/bookingApi/staff-booking`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        userId: bookingData.userId,
+        carId: bookingData.carId,
+        branchId: bookingData.branchId,
+        startTime: bookingData.startTime,
+        endTime: bookingData.endTime,
+        advancePaid: bookingData.advancePaid || 0
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      message: data.message || "Booking created successfully",
+      booking: data.booking
+    };
+  } catch (error) {
+    console.error('Error creating offline booking:', error);
+    throw error;
+  }
+};
+
+let authToken = null;
+
+// export const setToken = (token) => {
+//   authToken = token;
+//   if (token) {
+//     localStorage.setItem('token', token);
+//   } else {
+//     localStorage.removeItem('token');
+//   }
+// };
+
+// export const getToken = () => {
+//   return authToken || localStorage.getItem('token');
+// };
+
+export async function getStaffTasks(date) {
+  const d = date || new Date().toISOString().slice(0, 10);
+  
+  // Get branchId from the management profile API
+  const profile = await apiGet("/roleauth/getManagementProfile", { withAuth: true });
+  const branchId = profile?.branch || profile?.branch_id || profile?.branchId;
+  
+  if (!branchId) throw new Error("Branch not assigned to this account");
+  
+  return apiGet("/bookingApi/getStaffTasks", {
+    withAuth: true,
+    query: { date: d, branchId },
+  });
+}
+ 
+// ── FIX 2: getCancellationRequests — NEW function (was completely missing) ───
+// ADD this function anywhere in api.js after the Staff section:
+export async function getCancellationRequests(branchId) {
+  if (!branchId) throw new Error("branchId is required");
+  return apiGet("/bookingApi/cancellation-requests", {
+    withAuth: true,
+    query: { branchId },
+  });
+}
+ 
+// ── FIX 3: approveCancelBooking — NEW function (was completely missing) ──────
+// ADD this function after getCancellationRequests:
+export async function approveCancelBooking(bookingId) {
+  return apiPost(
+    `/bookingApi/approve-cancel/${bookingId}`,
+    {},             // empty body — the backend reads bookingId from the URL param
+    { withAuth: true }
+  );
+}
+
+// ── Car Management ────────────────────────────────────────────────
+export async function updateCarDetails(carId, carData) {
+  try {
+    // Using the correct endpoint from your backend (without /cars prefix)
+    const response = await apiPut(`/updateCar/${carId}`, carData, { withAuth: true });
+    return response;
+  } catch (error) {
+    console.error("Failed to update car details:", error);
+    throw error;
+  }
+}
+
+// Add to api.js
+export async function getStaffProfile() {
+  return apiGet("/roleauth/getManagementProfile", { withAuth: true });
+}
 export function getStatusText(status) {
   const texts = {
     pending: "Pending",
@@ -757,7 +1027,10 @@ const api = {
   updateBranchBookingStatus, updateBookingStatus, getSuperAdminFinances, getFinancialData, getPaymentHistory,
   getOwnerPendingBreakdown, markOwnerPaid, updateBranch, getAllData,
   addReview, getCarReviews, calculatePrice, calculateAdvanceAmount, formatINR, formatDate, formatDateTime,
-  getStatusColor, getStatusText, apiGet, apiPost, apiPut, apiDelete, setToken, getToken, authHeaders, decodeToken,
+  getStatusColor, getStatusText, apiGet, apiPost, apiPut, apiDelete, setToken, getToken, authHeaders, decodeToken, addFirebaseToken,
+  sendPushNotification,
+  getNotificationPreferences,
+  updateNotificationPreferences,
 };
 
 export default api;
