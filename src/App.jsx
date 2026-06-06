@@ -68,7 +68,7 @@ function App() {
           <Route path="/cancellation-policy" element={<CancellationPolicy />} />
           <Route path="/help" element={<Help />} /> 
           {/* /register-owner is an alias for owner registration */}
-          {/* <Route path="/register-owner" element={<Navigate to="/owner/register" replace />} />  */}
+          <Route path="/register-owner" element={<Navigate to="/owner/register" replace />} /> 
             {/* <Route path="/" element={<LaunchPage />} />  */}
 
           
@@ -274,10 +274,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/branch/dashboard"
             element={<Navigate to="/branch_dashboard" replace />}
-          />
+          /> */}
 
           
           <Route path="*" element={<NotFound />} /> 
