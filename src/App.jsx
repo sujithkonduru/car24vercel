@@ -54,7 +54,7 @@ function App() {
           {/* ── Public ── */}
           <Route path="/" element={<Home />} />  
           {/* /cars is an alias for the home page cars section */}
-          <Route path="/cars" element={<Navigate to="/#cars" replace />} /> 
+          <Route path="/cars" element={<Navigate to="/#cars" replace={true} />} /> 
           <Route path="/car/:id" element={<CarDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -68,7 +68,7 @@ function App() {
           <Route path="/cancellation-policy" element={<CancellationPolicy />} />
           <Route path="/help" element={<Help />} /> 
           {/* /register-owner is an alias for owner registration */}
-          <Route path="/register-owner" element={<Navigate to="/owner/register" replace />} /> 
+          <Route path="/register-owner" element={<Navigate to="/owner/register" replace={true} />} /> 
             {/* <Route path="/" element={<LaunchPage />} />  */}
 
           
@@ -274,10 +274,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* <Route
+          <Route
             path="/branch/dashboard"
-            element={<Navigate to="/branch_dashboard" replace />}
-          /> */}
+            element={<Navigate to="/branch_dashboard" replace={true} />}
+          />
 
           
           <Route path="*" element={<NotFound />} /> 
